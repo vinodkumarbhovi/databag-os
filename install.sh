@@ -95,6 +95,7 @@ done
 
 # 4. Setup questions, model download, start
 say "Almost done. A few questions to make databag yours:"
-if [ -r /dev/tty ]; then "$BIN" < /dev/tty; else "$BIN"; fi
+# "curl … | sh" uses the pipe as input, so the questions read from the terminal itself.
+if (exec < /dev/tty) 2>/dev/null; then "$BIN" < /dev/tty; else "$BIN" init --yes && "$BIN"; fi
 if [ "$OS" = darwin ]; then sleep 3; open "http://localhost:4100" 2>/dev/null || true; fi
 say "databag is installed. Open http://localhost:4100 to create your account. Run 'databag help' for commands."
