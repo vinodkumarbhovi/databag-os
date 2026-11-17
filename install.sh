@@ -7,7 +7,7 @@
 #   1. Node.js 24: uses yours if it is new enough, otherwise downloads the official build
 #      from nodejs.org into ~/.databag-os/runtime and checks its SHA-256.
 #   2. Ollama (the local AI runtime), unless you set DATABAG_AI=cloud.
-#   3. databag itself, from npm (package "databag-os"), into ~/.databag-os/app.
+#   3. databag itself, from npm (package "databag-os") or the latest GitHub release, into ~/.databag-os/app.
 #   4. Asks the setup questions (domain, company, logo, AI, apps), downloads Gemma 4
 #      and starts databag. On a Mac it then starts by itself whenever the Mac starts.
 #
@@ -81,8 +81,8 @@ fi
 say "Installing databag…"
 mkdir -p "$APP"
 if ! npm install --global --prefix "$APP" --no-fund --no-audit --loglevel=error "$PKG" 2>/dev/null; then
-  say "Not on npm yet; installing from GitHub instead (builds once, takes a few minutes)…"
-  npm install --global --prefix "$APP" --no-fund --no-audit --loglevel=error "github:$REPO" || fail "Could not install databag."
+  say "Installing the latest release from GitHub…"
+  npm install --global --prefix "$APP" --no-fund --no-audit --loglevel=error "https://github.com/$REPO/releases/latest/download/databag-os.tgz" || fail "Could not install databag."
 fi
 BIN="$APP/bin/databag"
 [ -x "$BIN" ] || fail "databag was not installed correctly."

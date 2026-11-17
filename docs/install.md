@@ -19,7 +19,7 @@ curl -fsSL https://raw.githubusercontent.com/vinodkumarbhovi/databag-os/main/ins
 The installer:
 1. Installs **Node.js 24** if you don't have it. It downloads the official build from nodejs.org, checks it, and keeps it in `~/.databag-os/runtime`. No password is needed.
 2. Installs **Ollama**, the app that runs the AI model. Skip this with `DATABAG_AI=cloud` if you will use an API key.
-3. Installs **databag** from npm.
+3. Installs **databag** from npm, or from the latest GitHub release.
 4. Asks five questions:
    - **Your domain**, e.g. `acme.com`. It is used for your email addresses, and optionally for the address your team opens (`https://os.acme.com`).
    - **Company name**.
@@ -39,7 +39,7 @@ Already have Node 24 or newer? `npx databag-os` does steps 3–5.
 
 ```bash
 git clone https://github.com/vinodkumarbhovi/databag-os && cd databag-os
-npm install            # also builds the app
+npm install && npm run build
 node bin/databag.mjs   # setup questions, then start
 ```
 
