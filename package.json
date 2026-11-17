@@ -1,0 +1,82 @@
+{
+  "name": "databag-os",
+  "version": "0.2.0",
+  "description": "databag: an open-source company OS. Mail, calendar, docs, CRM, accounting, agents and Value Factories in one package, with a local Gemma 4 model. Runs a whole company on a 16 GB Mac Mini.",
+  "keywords": [
+    "company-os",
+    "self-hosted",
+    "ai-agents",
+    "local-llm",
+    "gemma",
+    "ollama",
+    "crm",
+    "accounting",
+    "mcp",
+    "open-source"
+  ],
+  "homepage": "https://github.com/vinodkumarbhovi/databag-os#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vinodkumarbhovi/databag-os.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vinodkumarbhovi/databag-os/issues"
+  },
+  "license": "MIT",
+  "author": "databag",
+  "type": "module",
+  "bin": {
+    "databag": "bin/databag.mjs"
+  },
+  "files": [
+    "bin",
+    "shared",
+    ".next",
+    "!.next/cache",
+    "!.next/dev",
+    "!.next/trace",
+    "public",
+    "next.config.ts",
+    "install.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "DATABAG_HOME=.data next dev -p 4100 -H 127.0.0.1",
+    "build": "next build && node scripts/externals.mjs",
+    "start": "node bin/databag.mjs start",
+    "seed": "DATABAG_HOME=.data node scripts/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "prepare": "node -e \"process.exit(require('fs').existsSync('.next/BUILD_ID')?0:1)\" || npm run build",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.9.0",
+    "exceljs": "^4.4.0",
+    "html-to-docx": "^1.8.0",
+    "jszip": "^3.10.2",
+    "libsql": "^0.5.29",
+    "lucide-react": "^1.72.0",
+    "mailparser": "^3.14.3",
+    "mammoth": "^1.13.0",
+    "next": "^16.4.6",
+    "nodemailer": "^10.5.0",
+    "pdf-lib": "^1.17.1",
+    "pptxgenjs": "^4.0.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "smtp-server": "^3.21.4"
+  },
+  "devDependencies": {
+    "@types/mailparser": "^3.9.0",
+    "@types/node": "^26.6.6",
+    "@types/nodemailer": "^8.0.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/smtp-server": "^3.5.13",
+    "typescript": "^7.0.2"
+  }
+}

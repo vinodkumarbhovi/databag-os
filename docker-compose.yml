@@ -1,0 +1,47 @@
+# databag on any server, VM or laptop with Docker.
+#
+#   With the local AI included (Linux server, ~12 GB free memory):   docker compose --profile local-ai up -d
+#   Using an Ollama already running on this computer (e.g. a Mac):   DATABAG_AI_BASE_URL=http://host.docker.internal:11434/v1 docker compose up -d
+#   Using OpenRouter instead of a local model:                       OPENROUTER_API_KEY=sk-or-... DATABAG_AI_BASE_URL= docker compose up -d
+#
+# Then open http://localhost:4100 and set up your company. Data is kept in the "databag-data" volume.
+services:
+  databag:
+    build: .
+    image: databag-os
+    ports:
+      - "${DATABAG_PORT:-4100}:4100"
+      - "${DATABAG_SMTP_PORT:-2525}:2525"
+    volumes:
+      - databag-data:/data
+    environment:
+      # Unset = the bundled Ollama below; set it empty to use OpenRouter.
+      DATABAG_AI_BASE_URL: ${DATABAG_AI_BASE_URL-http://ollama:11434/v1}
+      DATABAG_AI_MODEL: ${DATABAG_AI_MODEL:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      DATABAG_URL: ${DATABAG_URL:-http://localhost:4100}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # The local AI: Ollama with Gemma 4, downloaded once into the "ollama-models" volume.
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["local-ai"]
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+    # With an NVIDIA GPU, uncomment:
+    # deploy: { resources: { reservations: { devices: [{ driver: nvidia, count: all, capabilities: [gpu] }] } } }
+  ollama-pull:
+    image: ollama/ollama:latest
+    profiles: ["local-ai"]
+    depends_on: [ollama]
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["sh", "-c", "until ollama list >/dev/null 2>&1; do sleep 2; done; ollama pull ${DATABAG_AI_MODEL:-gemma4:e4b}"]
+    restart: "no"
+
+volumes:
+  databag-data:
+  ollama-models:

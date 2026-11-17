@@ -1,0 +1,7 @@
+# Never upload local data, builds or secrets.
+.data
+node_modules
+.next
+.env
+.env.*
+*.log
