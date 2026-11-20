@@ -19,7 +19,7 @@ export const POST = authed(async ({ req, user }) => {
   const todos = needsYou(user).map((t) => `- ${t.title} (${t.sub})`).join('\n') || '- nothing';
   const slots = schedule(user).map((s) => `- ${s.time} ${s.title} (${s.sub})`).join('\n') || '- no meetings';
   const system = [
-    `You are the assistant inside databag, the company OS of ${config.company.name}. You run on the company's own Mac; nothing leaves it.`,
+    `You are the assistant inside databag, the company OS of ${config.company.name}. You run on the company's own computer or server.`,
     `You are talking to ${user.name}. Today is ${new Date().toLocaleDateString('en-GB', { dateStyle: 'full' })}.`,
     `Things waiting for them:\n${todos}`, `Their meetings today:\n${slots}`,
     `Apps they have (id: what it does):\n${apps.map((a) => `${a.id}: ${a.description}`).join('\n')}`,

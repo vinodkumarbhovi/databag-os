@@ -9,7 +9,7 @@ import { calendar } from './calendar.ts';
 /**
  * Booking links: a public page where people outside the company pick a free time
  * with you. Free times come from the opening hours you set, minus your calendar.
- * Times are worked out in this Mac's time zone; the booking page shows them in the visitor's.
+ * Times are worked out in this computer's time zone; the booking page shows them in the visitor's.
  */
 type Page = {
   id: string; owner_id: string; slug: string; title: string; description: string; minutes: number; days: string;

@@ -50,7 +50,7 @@ export function LoginForm({ company, logo }: { company: string; logo?: string | 
 type Choice = { id: string; name: string; sub: string; price?: number };
 
 /** First run, in three steps: who you are, what you pay for today, what you do most. */
-export function SetupForm({ defaults, tools, jobs, needsCode }: { defaults: { company: string; domain: string }; tools: Choice[]; jobs: Choice[]; needsCode?: boolean }) {
+export function SetupForm({ defaults, tools, jobs, needsCode, logo: savedLogo }: { defaults: { company: string; domain: string }; tools: Choice[]; jobs: Choice[]; needsCode?: boolean; logo?: string | null }) {
   const [step, setStep] = useState(0);
   const [f, setF] = useState({ company: defaults.company, domain: defaults.domain, name: '', handle: '', password: '', setupCode: '' });
   const [picked, setPicked] = useState<string[]>([]);
@@ -76,14 +76,14 @@ export function SetupForm({ defaults, tools, jobs, needsCode }: { defaults: { co
   return (
     <form className="setup" onSubmit={next} noValidate={step > 0}>
       <div className="setup-top">
-        <div className="brand-mark"><span>d</span></div>
+        {logo ? <img className="brand-logo" src={URL.createObjectURL(logo)} alt="" /> : savedLogo ? <img className="brand-logo" src={savedLogo} alt="" /> : <div className="brand-mark"><span>d</span></div>}
         <div className="setup-dots">{[0, 1, 2].map((i) => <div key={i} className={i <= step ? 'on' : ''} />)}</div>
         <span className="mono muted">Step {step + 1} of 3</span>
       </div>
 
       {step === 0 && (
         <div className="setup-step">
-          <h1>{needsCode ? 'databag is ready for your company.' : 'databag is installed on this Mac.'}</h1>
+          <h1>{needsCode ? 'databag is ready for your company.' : 'databag is installed on this computer.'}</h1>
           <p>Mail, documents, invoices, customers and more, in one place. {needsCode ? 'Your data is kept in your own database.' : 'Your data stays on this computer.'} Setup takes about two minutes.</p>
           <div className="form-grid">
             <label className="field"><span className="label">Your name</span><input className="input big" required autoComplete="name" autoFocus value={f.name} onChange={set('name')} /></label>
@@ -95,7 +95,7 @@ export function SetupForm({ defaults, tools, jobs, needsCode }: { defaults: { co
             <label className="field"><span className="label">Password (8 characters or more)</span><input className="input big" type="password" required minLength={8} autoComplete="new-password" value={f.password} onChange={set('password')} /></label>
             <label className="field"><span className="label">Company logo (optional, PNG, JPG or SVG; you can add it later in Settings)</span>
               <div className="split" style={{ alignItems: 'center', gap: 10 }}>
-                {logo && <img src={URL.createObjectURL(logo)} alt="" className="brand-logo" style={{ width: 40, height: 40 }} />}
+                {(logo || savedLogo) && <img src={logo ? URL.createObjectURL(logo) : savedLogo!} alt="" className="brand-logo" style={{ width: 40, height: 40 }} />}
                 <input className="input big" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => setLogo(e.target.files?.[0] ?? null)} />
               </div>
             </label>

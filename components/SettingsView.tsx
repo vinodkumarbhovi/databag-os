@@ -116,7 +116,7 @@ export function SettingsView({ me, company, ai, smtpPort, hasRelay, tools, chose
           <>
             <Meter label="Memory in use" value={`${machine.memory.usedGb} of ${machine.memory.totalGb} GB · databag ${machine.memory.appMb} MB`} used={machine.memory.usedGb} total={machine.memory.totalGb} />
             {machine.disk && <Meter label="Storage" value={`${machine.disk.usedGb} of ${machine.disk.totalGb} GB`} used={machine.disk.usedGb} total={machine.disk.totalGb} />}
-            <div className="spread"><span>Local AI model</span><span className="mono muted">{machine.ai.ok && machine.ai.installed ? `${ai.model} · ready · nothing is sent to the cloud` : machine.ai.ok ? `${ai.model} is not installed` : `not reachable at ${ai.baseUrl}`}</span></div>
+            <div className="spread"><span>Local AI model</span><span className="mono muted">{machine.ai.ok && machine.ai.installed ? `${ai.model} · ready · runs on this machine` : machine.ai.ok ? `${ai.model} is not installed` : `not reachable at ${ai.baseUrl}`}</span></div>
           </>
         ) : <span className="muted">Checking…</span>}
         <div className="spread">
@@ -168,7 +168,7 @@ export function SettingsView({ me, company, ai, smtpPort, hasRelay, tools, chose
           <input type="checkbox" disabled={!me.isAdmin} checked={agentPrefs.confirm === 'all'} onChange={(e) => { const confirm = e.target.checked ? 'all' : 'send'; setAgentPrefs({ ...agentPrefs, confirm }); save({ agentConfirm: confirm }); }} />
         </label>
         <label className="panel-row compact" style={{ cursor: me.isAdmin ? 'pointer' : 'default' }}>
-          <span className="grow"><strong style={{ fontWeight: 500 }}>Tidy up dictation</strong><div className="muted small">Removes “um”, false starts and repeats, and adds punctuation. Hold the right ⌥ key anywhere to dictate; speech is written down by the AI model on this Mac.</div></span>
+          <span className="grow"><strong style={{ fontWeight: 500 }}>Tidy up dictation</strong><div className="muted small">Removes “um”, false starts and repeats, and adds punctuation. Hold the right ⌥ key anywhere to dictate; speech is written down by your AI model.</div></span>
           <input type="checkbox" disabled={!me.isAdmin} checked={agentPrefs.cleanup} onChange={(e) => { setAgentPrefs({ ...agentPrefs, cleanup: e.target.checked }); save({ speechCleanup: e.target.checked }); }} />
         </label>
       </div>

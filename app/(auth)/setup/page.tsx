@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { SetupForm } from '@/components/AuthForms';
 import { userCount } from '@/lib/auth';
 import { CATALOG, JOBS, TOOLS } from '@/lib/catalog';
-import { loadConfig } from '@/lib/config';
+import { loadConfig, logoUrl } from '@/lib/config';
 import { CLOUD } from '@/lib/runtime';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +18,7 @@ export default function SetupPage() {
         tools={TOOLS.map((t) => ({ id: t.id, name: t.name, sub: t.apps.map(name).join(', '), price: t.price }))}
         jobs={JOBS.filter((j) => apps.includes(j.app)).map((j) => ({ id: j.id, name: j.label, sub: '' }))}
         needsCode={CLOUD}
+        logo={logoUrl()}
       />
     </main>
   );

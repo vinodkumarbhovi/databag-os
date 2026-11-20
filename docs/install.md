@@ -1,16 +1,22 @@
 # Install
 
-- [Mac Mini or laptop](#mac-mini-or-laptop) (recommended)
+databag runs on your own machine, wherever that is. The same steps work on a laptop, a desktop, a Mac Mini, a VM, or a server in your office, cloud or data center.
+
+- [Your own machine](#your-own-machine) (recommended): macOS or Linux
+- [A Linux server or VM](#a-linux-server-or-vm): reachable by your whole team
 - [Your domain](#your-domain)
-- [Docker](#docker): any server, VM or PC
+- [Docker](#docker): any server, VM or PC, including Windows
 - [Cloud (Vercel)](#cloud-vercel)
 - [Updating and removing](#updating-and-removing)
 
-## Mac Mini or laptop
+## Your own machine
 
-**You need:** macOS (Apple silicon or Intel) or Linux, 16 GB of memory for the local model (8 GB is enough with an API key), and about 15 GB of free disk.
+**You need:**
+- macOS (Apple silicon or Intel) or Linux (x64 or arm64). On Windows, use WSL2 or [Docker](#docker).
+- 16 GB of memory for the local model; 8 GB is enough with an API key.
+- About 15 GB of free disk.
 
-Open **Terminal** and paste:
+Open a terminal and paste:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vinodkumarbhovi/databag-os/main/install.sh | sh
@@ -18,7 +24,7 @@ curl -fsSL https://raw.githubusercontent.com/vinodkumarbhovi/databag-os/main/ins
 
 The installer:
 1. Installs **Node.js 24** if you don't have it. It downloads the official build from nodejs.org, checks it, and keeps it in `~/.databag-os/runtime`. No password is needed.
-2. Installs **Ollama**, the app that runs the AI model. Skip this with `DATABAG_AI=cloud` if you will use an API key.
+2. Installs **Ollama**, which runs the AI model: the app on macOS, the official script on Linux (which may ask for your password). Skip this with `DATABAG_AI=cloud` if you will use an API key.
 3. Installs **databag** from npm, or from the latest GitHub release.
 4. Asks five questions:
    - **Your domain**, e.g. `acme.com`. It is used for your email addresses, and optionally for the address your team opens (`https://os.acme.com`).
@@ -29,7 +35,7 @@ The installer:
      - OpenRouter, or
      - OpenAI, with your API key.
    - **Apps**: all of them, or a selection.
-5. Downloads **Gemma 4 E4B** (about 10 GB, once). It then sets databag to start whenever the Mac starts, and opens http://localhost:4100.
+5. Downloads **Gemma 4 E4B** (about 10 GB, once). It then sets databag to run in the background and start with the machine (a LaunchAgent on macOS, a systemd user service on Linux), and opens http://localhost:4100.
 
 Create your account in the browser and you're in. Add your team in **Settings → People**.
 
@@ -45,6 +51,33 @@ node bin/databag.mjs   # setup questions, then start
 
 For development: `npm run seed` creates a demo company, then `npm run dev`.
 
+## A Linux server or VM
+
+The same one-line installer works on Ubuntu, Debian, Fedora and most other Linux servers, in your office, on a cloud VM (AWS, Azure, GCP, Hetzner…) or in your data center.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vinodkumarbhovi/databag-os/main/install.sh | sh
+```
+
+On a server with no screen, or with a hosted model instead of a local one:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vinodkumarbhovi/databag-os/main/install.sh | DATABAG_AI=cloud sh
+```
+
+To answer the questions with flags instead (for scripts and automation):
+
+```bash
+npx databag-os init --yes --domain acme.com --company "Acme" --url https://os.acme.com \
+  --host 127.0.0.1 --port 4100 --openrouter-key sk-or-...
+npx databag-os service install     # systemd: runs in the background, restarts on failure
+sudo loginctl enable-linger $USER  # once: keep it running after logout and start it at boot
+```
+
+- `--host 127.0.0.1` (the default) is right behind a reverse proxy or tunnel. Use `--host 0.0.0.0` only on a private network.
+- Logs: `journalctl --user -u databag -f`
+- A GPU server can run a larger model for the whole team: `ollama pull gemma4:12b`, then choose it in **Settings → AI**.
+
 ## Your domain
 
 Your team reaches databag at an address like `https://os.acme.com`. Two ways to set that up:
@@ -52,9 +85,9 @@ Your team reaches databag at an address like `https://os.acme.com`. Two ways to 
 **Cloudflare Tunnel** (easiest, free): HTTPS is included and no router changes are needed. It also works behind any home or office internet connection.
 
 1. Add your domain to [Cloudflare](https://dash.cloudflare.com) on the free plan. Then, at your domain provider (GoDaddy, Namecheap, TransIP…), change the nameservers to the two Cloudflare gives you.
-2. On the Mac:
+2. On the machine running databag:
    ```bash
-   brew install cloudflared
+   brew install cloudflared        # macOS; on Linux see developers.cloudflare.com/cloudflared
    cloudflared tunnel login
    cloudflared tunnel create databag
    cloudflared tunnel route dns databag os.acme.com
@@ -62,10 +95,15 @@ Your team reaches databag at an address like `https://os.acme.com`. Two ways to 
    ```
    To keep the tunnel running after restarts: `sudo cloudflared service install`.
 
-**A fixed public IP:**
+**A server with a public IP** (a VM or data center machine):
 1. At your domain provider, add an **A record** that points `os` to your public IP.
-2. Forward port 443 on your router to the Mac.
-3. Run `databag https <certificate> <key> os.acme.com`.
+2. Put a reverse proxy in front of databag. [Caddy](https://caddyserver.com) gets the HTTPS certificate by itself:
+   ```text
+   os.acme.com {
+     reverse_proxy 127.0.0.1:4100
+   }
+   ```
+   Or, on a machine behind a router, forward port 443 to it and run `databag https <certificate> <key> os.acme.com`.
 
 `databag domain` shows these steps again, filled in with your own domain.
 
@@ -108,7 +146,7 @@ Differences in the cloud:
 
 ```bash
 npm install --global --prefix ~/.databag-os/app databag-os@latest   # update
-databag service remove                                              # stop starting with the Mac
+databag service remove                                              # stop running in the background
 rm -rf ~/.databag-os                                                # remove databag AND all its data
 ```
 

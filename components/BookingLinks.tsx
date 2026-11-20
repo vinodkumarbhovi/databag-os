@@ -49,7 +49,7 @@ export function BookingLinks({ onClose, notify }: { onClose: () => void; notify:
         </div>
         <label className="sign-agree" style={{ marginBottom: 8 }}><input type="checkbox" checked={!!edit.add_meet} onChange={(e) => setEdit({ ...edit, add_meet: e.target.checked ? 1 : 0 })} /> Add a video call link to each booking</label>
         <label className="sign-agree"><input type="checkbox" checked={!!edit.active} onChange={(e) => setEdit({ ...edit, active: e.target.checked ? 1 : 0 })} /> Page is open for bookings</label>
-        <p className="muted small" style={{ marginTop: 10 }}>Times already taken in your calendar are hidden automatically. Hours use this Mac’s time zone; visitors see times in theirs.</p>
+        <p className="muted small" style={{ marginTop: 10 }}>Times already taken in your calendar are hidden automatically. Hours use this computer’s time zone; visitors see times in theirs.</p>
         {error && <div className="error" style={{ marginTop: 8 }}>{error}</div>}
         <div className="modal-foot"><button className="btn primary" onClick={save}>Save</button></div>
       </Modal>

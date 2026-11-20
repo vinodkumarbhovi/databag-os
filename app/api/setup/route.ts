@@ -26,7 +26,7 @@ export const POST = open(async ({ req }) => {
 
   const user = createUser({ email: `${handle}@${domain}`, name: body.name ?? '', password: body.password ?? '', role: 'admin' });
   saveConfig({
-    ...loadConfig(), company: { name: company, domain },
+    ...loadConfig(), company: { ...loadConfig().company, name: company, domain },
     tools: (body.tools ?? []).filter((id) => TOOLS.some((t) => t.id === id)),
     shortcuts: (body.shortcuts ?? []).filter((id) => JOBS.some((j) => j.id === id)),
   });

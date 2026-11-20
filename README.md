@@ -1,6 +1,8 @@
 # databag
 
-**An open-source company OS that runs your whole company on one Mac Mini.**
+**Your whole company, running on your own machine.**
+
+An open-source company OS that you install like any app. It runs on your laptop, a desktop, a Mac Mini, a VM, or a server in your office, cloud or data center. Your data, your AI model, your hardware.
 
 Mail, calendar, meetings, chat, documents, spreadsheets, slides, files, CRM, contacts, projects, e-signatures, accounting, tax and LinkedIn, in one package. On top of them sit **AI agents** you build yourself and **Value Factories**: projects where agents do the work and you approve what goes out.
 
@@ -10,16 +12,18 @@ It runs on a local open model (**Gemma 4**) by default, so nothing leaves the ma
 curl -fsSL https://raw.githubusercontent.com/vinodkumarbhovi/databag-os/main/install.sh | sh
 ```
 
-On a new Mac Mini that one line does everything:
-- installs Node.js and Ollama
+On any Mac or Linux machine, that one line does everything:
+- installs Node.js and Ollama if they're missing
 - asks for your **domain**, **company name** and **logo**
-- downloads Gemma 4 and starts databag
+- downloads Gemma 4 and starts databag in the background
 
 Then it opens your browser, ready for you to create the first account. Already have Node 24 or newer?
 
 ```bash
 npx databag-os
 ```
+
+Windows users can use WSL2 or Docker. In the cloud, Vercel works too (see [Install options](#install-options)).
 
 ---
 
@@ -39,7 +43,7 @@ Everything shares one database, so apps work together. For example, a CRM deal b
 
 ```mermaid
 flowchart LR
-  subgraph Mac["Your Mac Mini (16 GB)"]
+  subgraph Mac["Your machine: laptop, Mac Mini, VM or server"]
     direction LR
     B["Browser<br/>your team"] --> N["databag<br/>one Next.js process"]
     N --> DB[("SQLite<br/>one file")]
@@ -51,7 +55,7 @@ flowchart LR
   D["your domain<br/>os.acme.com"] -. Cloudflare Tunnel .-> N
 ```
 
-One process, one database file, one local model. Each app is a module in the same process, not a separate server. That is how the whole thing fits in 16 GB, with room left for the model. More diagrams are in [docs/architecture.md](docs/architecture.md).
+One process, one database file, one local model. Each app is a module in the same process, not a separate server. That is why it runs on almost anything: a 16 GB laptop or Mac Mini runs the apps and the local model together, and a small VM runs the apps with a hosted model. More diagrams are in [docs/architecture.md](docs/architecture.md).
 
 ## Agents: build your own
 
@@ -104,18 +108,22 @@ databag is set up for one company at a time, and every install is that company's
 
 | | Where | AI | Guide |
 |---|---|---|---|
-| **Mac Mini or laptop** | your computer, starts with it | Gemma 4 on the same machine | [docs/install.md](docs/install.md#mac-mini-or-laptop) |
-| **Any server, VM or PC** | Docker | bundled Ollama, the host's Ollama, or an API | [docs/install.md](docs/install.md#docker) |
-| **Cloud** | Vercel + Turso | OpenRouter | [docs/install.md](docs/install.md#cloud-vercel) |
+| **Your own machine**: laptop, desktop, Mac Mini, Linux VM or server (macOS or Linux) | one-line installer or `npx databag-os`; starts with the machine | Gemma 4 on the same machine, or any API | [docs/install.md](docs/install.md#your-own-machine) |
+| **Docker**: any server, VM, data center or PC (including Windows) | `docker compose up` | bundled Ollama, the host's Ollama, or any API | [docs/install.md](docs/install.md#docker) |
+| **Serverless cloud** | Vercel + Turso | OpenRouter | [docs/install.md](docs/install.md#cloud-vercel) |
 
-Gemma 4 E4B takes about 10 GB to download and about 7 GB of memory while working. That fits next to databag on a **16 GB / 256 GB Mac Mini**. On smaller machines, choose an API key during setup instead.
+| Machine | What runs well |
+|---|---|
+| 16 GB or more (laptop, Mac Mini, server) | all apps + local Gemma 4 E4B (about 10 GB download, 7 GB memory while working) |
+| 8 GB, or a small VM | all apps + a hosted model (OpenRouter, OpenAI) or the smaller `gemma4:e2b` |
+| GPU server | all apps + a larger local model (`gemma4:12b`, `gemma4:26b`) for the whole team |
 
 ## Commands
 
 ```text
 databag           set up (first time) and run
 databag init      answer the setup questions again (domain, logo, AI, apps)
-databag service   install | remove: start with the Mac
+databag service   install | remove: run in the background, start with the machine (macOS, Linux)
 databag domain    how to point your domain at this computer
 databag doctor    check this machine is ready
 databag model     download the local model
@@ -125,7 +133,7 @@ databag restore   put a backup back (a backup is made every day)
 
 ## Docs
 
-- [Install](docs/install.md): Mac Mini, Docker, cloud, your domain
+- [Install](docs/install.md): your own machine, Linux servers, Docker, cloud, your domain
 - [Architecture](docs/architecture.md): how the pieces fit, with diagrams
 - [Agents and Value Factories](docs/agents-and-factories.md)
 - [Configuration](docs/configuration.md): settings and environment variables

@@ -10,7 +10,7 @@ flowchart TB
     UI["Apps UI<br/>React"]
     AP["Agent panel<br/>+ dictation"]
   end
-  subgraph Server["databag (one Next.js process)"]
+  subgraph Server["databag: one Next.js process on your machine"]
     RPC["/api/rpc<br/>every app's functions"]
     AG["/api/agent<br/>agent loop"]
     SP["/api/speech"]
@@ -96,22 +96,22 @@ flowchart LR
 
 `lib/agent/profile.ts` turns a saved agent into a working one: its system prompt, its tools and its model. See [agents-and-factories.md](agents-and-factories.md).
 
-## Installing on a Mac Mini
+## Installing on your machine (macOS or Linux)
 
 ```mermaid
 flowchart TB
   A["curl … install.sh | sh"] --> B{"Node 24+?"}
   B -- no --> B1["Download Node from nodejs.org<br/>check SHA-256"] --> C
   B -- yes --> C{"Ollama?"}
-  C -- no --> C1["Download Ollama.app"] --> D
+  C -- no --> C1["Install Ollama<br/>(app on macOS, script on Linux)"] --> D
   C -- yes --> D["npm install databag-os"]
   D --> E["Questions:<br/>domain → company → logo → AI → apps"]
   E --> F["Download Gemma 4 E4B<br/>(skipped with an API key)"]
-  F --> G["Start with the Mac<br/>(LaunchAgent)"]
+  F --> G["Run in the background<br/>(LaunchAgent / systemd)"]
   G --> H["Browser opens:<br/>create the first account"]
 ```
 
-## Memory budget (16 GB Mac Mini)
+## Memory budget (a 16 GB machine)
 
 | What | About |
 |---|---|
@@ -120,13 +120,13 @@ flowchart TB
 | databag (Node.js) | 300–500 MB |
 | Free for the browser and other apps | 4 GB or more |
 
-On a 256 GB disk the model takes about 10 GB. Company data is usually far smaller.
+This is the same on a 16 GB laptop, Mac Mini or VM. The model takes about 10 GB of disk; company data is usually far smaller. With a hosted model instead, databag itself needs well under 1 GB of memory.
 
 ## Three ways to run, one codebase
 
 | | Database | Files | Background jobs | Mail in |
 |---|---|---|---|---|
-| Mac / laptop / VM | SQLite file | on disk | timers in the process | built-in SMTP |
+| Your machine: laptop, Mac Mini, VM, server | SQLite file | on disk | timers in the process | built-in SMTP |
 | Docker | SQLite in a volume | in the volume | timers in the process | built-in SMTP |
 | Vercel | Turso (libSQL) | in the database | Vercel Cron + on use | not available |
 

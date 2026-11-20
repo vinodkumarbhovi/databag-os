@@ -102,7 +102,7 @@ export function Assistant() {
     <aside className="assistant" aria-label={title}>
       <div className="assistant-head">
         {app === 'overview' ? <Sparkles size={18} color="var(--accent)" /> : <span className="panel-icon" style={{ width: 28, height: 28 }}><AppIcon id={app} size={15} /></span>}
-        <div style={{ flex: 1 }}><div style={{ fontWeight: 600 }}>{title}</div><div className="mono muted">{app === 'overview' ? 'Works across every app' : `Works in ${NAMES[app]} and every other app`} · on this Mac</div></div>
+        <div style={{ flex: 1 }}><div style={{ fontWeight: 600 }}>{title}</div><div className="mono muted">{app === 'overview' ? 'Works across every app' : `Works in ${NAMES[app]} and every other app`} · on your machine</div></div>
         {log.length > 0 && <button className="btn ghost icon" onClick={reset} title="Start over" aria-label="Start a new conversation"><RotateCcw size={15} /></button>}
         <button className="btn ghost icon" onClick={() => setOpen(false)} aria-label="Close agent"><X size={16} /></button>
       </div>

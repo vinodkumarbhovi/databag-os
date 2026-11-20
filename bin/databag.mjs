@@ -44,7 +44,8 @@ const DOMAIN_RE = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 /**
  * Set up databag for one company, in plain questions:
  * domain, company name, logo, which AI, which apps. Every answer can be changed later in Settings.
- * Non-interactive: databag init --yes [--domain acme.com] [--company "Acme"] [--logo logo.png] [--openrouter-key …]
+ * Non-interactive: databag init --yes [--domain acme.com] [--company "Acme"] [--logo logo.png] [--url https://os.acme.com]
+ *                  [--host 0.0.0.0] [--port 4100] [--model gemma4:e4b] [--openrouter-key …]
  */
 async function init(args) {
   const config = readConfig() ?? structuredClone(DEFAULTS);
@@ -55,6 +56,8 @@ async function init(args) {
     if (flag('domain')) config.company.domain = cleanDomain(flag('domain'));
     if (flag('company')) config.company.name = flag('company');
     if (flag('url')) config.company.url = flag('url');
+    if (flag('host')) config.host = flag('host');   // 0.0.0.0 to accept connections from other machines
+    if (flag('port')) config.port = Number(flag('port'));
     if (flag('logo')) saveLogo(config, path.resolve(flag('logo')));
     const key = flag('openrouter-key') ?? process.env.OPENROUTER_API_KEY;
     if (key) config.ai = { baseUrl: 'https://openrouter.ai/api/v1', model: flag('model') ?? 'google/gemini-2.5-flash', apiKey: key, extraBody: {} };
@@ -105,7 +108,7 @@ async function init(args) {
   const where = stop(await p.select({
     message: 'Which AI should run your apps and agents?',
     options: [
-      { value: 'local', label: `Gemma 4 on this computer (${LOCAL_MODEL})`, hint: 'free, private, about 10 GB download; fine on a 16 GB Mac Mini' },
+      { value: 'local', label: `Gemma 4 on this computer (${LOCAL_MODEL})`, hint: 'free, private, about 10 GB download; needs about 16 GB of memory' },
       { value: 'openrouter', label: 'A hosted model through OpenRouter', hint: 'needs an API key; best on small machines' },
       { value: 'openai', label: 'OpenAI', hint: 'needs an API key' },
     ],
@@ -136,11 +139,11 @@ async function init(args) {
 
   writeConfig(config);
   if (config.company.url) p.note(domainSteps(config), 'Point your domain at this computer');
-  if (process.platform === 'darwin' && !args.includes('--no-service')) {
-    const always = stop(await p.confirm({ message: 'Start databag automatically when this Mac starts?', initialValue: true }));
+  if (canService() && !args.includes('--no-service')) {
+    const always = stop(await p.confirm({ message: 'Run databag in the background and start it with this machine?', initialValue: true }));
     if (always) serviceInstall();
   }
-  p.outro(`Saved. ${process.platform === 'darwin' && fs.existsSync(PLIST) ? 'databag is starting; open' : 'Start it with:  databag start  and open'} http://localhost:${config.port} to create your account.`);
+  p.outro(`Saved. ${hasService() ? 'databag is starting; open' : 'Start it with:  databag start  and open'} http://localhost:${config.port} to create your account.`);
   return config;
 }
 
@@ -150,14 +153,15 @@ function domainSteps(config) {
   return [
     `Easiest (free, HTTPS included, no router changes): Cloudflare Tunnel.`,
     `  1. Add ${config.company.domain} to Cloudflare (free plan) and switch its nameservers at your domain provider.`,
-    `  2. On this Mac:  brew install cloudflared`,
+    `  2. On this machine:  install cloudflared (macOS: brew install cloudflared; Linux: see developers.cloudflare.com)`,
     `                   cloudflared tunnel login`,
     `                   cloudflared tunnel create databag`,
     `                   cloudflared tunnel route dns databag ${host}`,
     `                   cloudflared tunnel run --url http://localhost:${config.port} databag`,
     ``,
     `Or, with a fixed public IP: add an A record  ${host} → <your public IP>  at your domain provider,`,
-    `forward port 443 to this Mac, and use  databag https <cert> <key> ${host}.`,
+    `forward port 443 to this machine, and use  databag https <cert> <key> ${host}`,
+    `(or put any reverse proxy, such as Caddy or nginx, in front of http://127.0.0.1:${config.port}).`,
     ``,
     `Run  databag domain  to see these steps again.`,
   ].join('\n');
@@ -169,10 +173,17 @@ function domainCmd() {
   console.log(domainSteps(config));
 }
 
-/** macOS: run databag in the background and start it again after every restart. */
+/**
+ * Run databag in the background and start it again after every restart:
+ * a LaunchAgent on macOS, a systemd user service on Linux.
+ */
 const PLIST = path.join(os.homedir(), 'Library', 'LaunchAgents', 'ai.databag.os.plist');
+const UNIT = path.join(os.homedir(), '.config', 'systemd', 'user', 'databag.service');
+const hasService = () => (process.platform === 'darwin' ? fs.existsSync(PLIST) : process.platform === 'linux' && fs.existsSync(UNIT));
+const canService = () => process.platform === 'darwin' || (process.platform === 'linux' && spawnSync('systemctl', ['--user', 'show-environment'], { stdio: 'ignore' }).status === 0);
 function serviceInstall() {
-  if (process.platform !== 'darwin') { console.log('Automatic start is set up for macOS. On Linux use the Docker image or a systemd unit (see the docs).'); return; }
+  if (process.platform === 'linux') return systemdInstall();
+  if (process.platform !== 'darwin') { console.log('Automatic start is available on macOS and Linux. Elsewhere, use Docker (see docs/install.md).'); return; }
   fs.mkdirSync(path.dirname(PLIST), { recursive: true });
   fs.mkdirSync(path.join(HOME, 'logs'), { recursive: true });
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -190,10 +201,34 @@ function serviceInstall() {
 `);
   spawnSync('launchctl', ['unload', PLIST], { stdio: 'ignore' });
   spawnSync('launchctl', ['load', '-w', PLIST], { stdio: 'inherit' });
-  console.log(`databag now starts with this Mac. Logs: ${path.join(HOME, 'logs', 'databag.log')}`);
+  console.log(`databag now runs in the background and starts with this Mac. Logs: ${path.join(HOME, 'logs', 'databag.log')}`);
+}
+function systemdInstall() {
+  if (!canService()) { console.log('systemd is not available for this user. Run databag with  databag start  (for example under your own process manager), or use Docker.'); return; }
+  fs.mkdirSync(path.dirname(UNIT), { recursive: true });
+  const q = (s) => `"${s.replace(/"/g, '\\"')}"`;
+  fs.writeFileSync(UNIT, `[Unit]
+Description=databag company OS
+After=network-online.target
+
+[Service]
+Environment=DATABAG_HOME=${HOME}
+ExecStart=${q(process.execPath)} ${q(path.join(ROOT, 'bin', 'databag.mjs'))} start
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+`);
+  spawnSync('systemctl', ['--user', 'daemon-reload'], { stdio: 'inherit' });
+  spawnSync('systemctl', ['--user', 'enable', '--now', 'databag'], { stdio: 'inherit' });
+  // Without "linger", user services stop when you log out and do not start at boot.
+  const linger = spawnSync('loginctl', ['enable-linger', os.userInfo().username], { stdio: 'ignore' }).status === 0;
+  console.log(`databag now runs in the background as a systemd service. Logs: journalctl --user -u databag -f${linger ? '' : `\nTo keep it running after you log out and start it at boot, run once:  sudo loginctl enable-linger ${os.userInfo().username}`}`);
 }
 function serviceRemove() {
   if (fs.existsSync(PLIST)) { spawnSync('launchctl', ['unload', '-w', PLIST], { stdio: 'inherit' }); fs.rmSync(PLIST); }
+  if (fs.existsSync(UNIT)) { spawnSync('systemctl', ['--user', 'disable', '--now', 'databag'], { stdio: 'inherit' }); fs.rmSync(UNIT); spawnSync('systemctl', ['--user', 'daemon-reload'], { stdio: 'ignore' }); }
   console.log('databag no longer starts by itself.');
 }
 function service([what]) {
@@ -340,9 +375,10 @@ if (!command) {
   // Plain "databag" (or "npx databag-os"): set up the first time, then run.
   if (!readConfig()) await init(rest);
   // Open the browser once databag has had a moment to start.
-  if (process.platform === 'darwin' && process.stdout.isTTY) setTimeout(() => spawn('open', [`http://localhost:${readConfig().port}`], { stdio: 'ignore' }).on('error', () => {}), 6000).unref?.();
-  if (!fs.existsSync(PLIST) || process.platform !== 'darwin') await start(rest);
-  else console.log(`databag is running in the background: http://localhost:${readConfig().port}   (logs: ${path.join(HOME, 'logs', 'databag.log')})`);
+  const opener = process.platform === 'darwin' ? 'open' : process.platform === 'linux' && process.env.DISPLAY ? 'xdg-open' : null;
+  if (opener && process.stdout.isTTY) setTimeout(() => spawn(opener, [`http://localhost:${readConfig().port}`], { stdio: 'ignore' }).on('error', () => {}), 6000).unref?.();
+  if (!hasService()) await start(rest);
+  else console.log(`databag is running in the background: http://localhost:${readConfig().port}`);
 } else if (commands[command]) await commands[command](rest);
 else
   console.log(`databag: your company OS
@@ -350,7 +386,7 @@ else
   databag           set up (first time) and run
   databag init      answer the setup questions again (domain, logo, AI, apps)
   databag start     run everything (opens on http://localhost:4100)
-  databag service   install | remove: start with this Mac (macOS)
+  databag service   install | remove: start with this machine (macOS or Linux)
   databag domain    show how to point your domain at this computer
   databag apps      list apps and what is installed
   databag doctor    check this machine is ready

@@ -42,7 +42,7 @@ const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(str).filter(Boo
 const money = (n: number) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: loadConfig().currency }).format(n);
 const fmt = (ts: number) => new Date(ts).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-/** "2026-11-16 10:00", "2026-11-16T10:00", "2026-11-16" (09:00) in this Mac's time zone. */
+/** "2026-11-16 10:00", "2026-11-16T10:00", "2026-11-16" (09:00) in this computer's time zone. */
 export function parseWhen(v: unknown, defaultHour = 9): number {
   const s = str(v);
   const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/.exec(s);

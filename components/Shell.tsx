@@ -58,7 +58,7 @@ export function Shell({ user, company, logo, groups, apps, unread, children }: P
           <Link href="/settings" className={`nav-item ${active('/settings') ? 'active' : ''}`}><Settings size={17} strokeWidth={1.7} /><span>Settings</span></Link>
           <div className="running" title={ai === false ? 'The local AI model is not reachable. See Settings.' : 'Everything runs on this computer'}>
             <span className={`dot ${ai === false ? 'bad' : ''}`} />
-            <span style={{ flex: 1 }}>{ai === false ? 'AI model offline' : 'Running on this Mac'}</span>
+            <span style={{ flex: 1 }}>{ai === false ? 'AI model offline' : 'Running on your machine'}</span>
             <button className="btn icon theme-btn" onClick={toggleTheme} title="Light or dark" aria-label="Switch light or dark theme">
               <Sun size={14} className="theme-sun" /><Moon size={14} className="theme-moon" />
             </button>

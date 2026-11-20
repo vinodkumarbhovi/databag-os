@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. databag aims to stay **simple**: one process, one database, plain language in the interface, and small enough to run a company on a 16 GB Mac Mini.
+Thanks for helping. databag aims to stay **simple**: one process, one database, plain language in the interface, and small enough to run a whole company on one ordinary machine.
 
 ## Get going
 

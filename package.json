@@ -1,7 +1,7 @@
 {
   "name": "databag-os",
-  "version": "0.2.0",
-  "description": "databag: an open-source company OS. Mail, calendar, docs, CRM, accounting, agents and Value Factories in one package, with a local Gemma 4 model. Runs a whole company on a 16 GB Mac Mini.",
+  "version": "0.3.0",
+  "description": "databag: an open-source company OS. Mail, calendar, docs, CRM, accounting, agents and Value Factories in one package, with a local Gemma 4 model. Runs on your own machine: a laptop, a Mac Mini, a VM or a server in your data center.",
   "keywords": [
     "company-os",
     "self-hosted",

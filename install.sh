@@ -1,26 +1,28 @@
 #!/bin/sh
-# databag one-line installer, for a Mac (Apple silicon or Intel) or a Linux machine.
+# databag one-line installer for any Mac or Linux machine: a laptop, a desktop, a VM or a server.
 #
 #   curl -fsSL https://raw.githubusercontent.com/vinodkumarbhovi/databag-os/main/install.sh | sh
 #
-# What it does, in order (nothing needs your password on a Mac):
+# What it does, in order (on a Mac nothing needs your password):
 #   1. Node.js 24: uses yours if it is new enough, otherwise downloads the official build
 #      from nodejs.org into ~/.databag-os/runtime and checks its SHA-256.
 #   2. Ollama (the local AI runtime), unless you set DATABAG_AI=cloud.
 #   3. databag itself, from npm (package "databag-os") or the latest GitHub release, into ~/.databag-os/app.
 #   4. Asks the setup questions (domain, company, logo, AI, apps), downloads Gemma 4
-#      and starts databag. On a Mac it then starts by itself whenever the Mac starts.
+#      and starts databag. It can then start by itself whenever the machine starts
+#      (a LaunchAgent on macOS, a systemd service on Linux).
 #
 # Options (environment variables):
 #   DATABAG_HOME=/path   where data lives (default ~/.databag-os)
 #   DATABAG_AI=cloud     skip Ollama; you will be asked for an OpenRouter or OpenAI key
 #   DATABAG_VERSION=x.y  install a specific databag version
+#   DATABAG_PACKAGE=…    install from a package file or URL instead (offline or company mirrors)
 set -eu
 
 DATA="${DATABAG_HOME:-$HOME/.databag-os}"
 RUNTIME="$DATA/runtime"
 APP="$DATA/app"
-PKG="databag-os${DATABAG_VERSION:+@$DATABAG_VERSION}"
+PKG="${DATABAG_PACKAGE:-databag-os${DATABAG_VERSION:+@$DATABAG_VERSION}}"
 REPO="vinodkumarbhovi/databag-os"
 
 say() { printf '\033[1;32m›\033[0m %s\n' "$1"; }
@@ -57,7 +59,7 @@ say "Node.js $(node -v)"
 if [ "${DATABAG_AI:-local}" != "cloud" ]; then
   if ! have ollama && [ ! -d /Applications/Ollama.app ] && [ ! -d "$HOME/Applications/Ollama.app" ]; then
     if [ "$OS" = darwin ]; then
-      say "Downloading Ollama (runs the AI model on this Mac)…"
+      say "Downloading Ollama (runs the AI model on this machine)…"
       TMP="$(mktemp -d)"
       curl -fL --progress-bar https://ollama.com/download/Ollama-darwin.zip -o "$TMP/Ollama.zip"
       mkdir -p "$HOME/Applications"
@@ -89,11 +91,21 @@ if ! npm install --global --prefix "$APP" --no-fund --no-audit --loglevel=error 
 fi
 [ -x "$BIN" ] || fail "databag was not installed correctly."
 
+# A small launcher that always uses this Node.js, so "databag" works in any new shell,
+# whether or not that shell can find Node.js itself.
+mkdir -p "$DATA/bin"
+printf '#!/bin/sh\nexec "%s" "%s" "$@"\n' "$(command -v node)" "$APP/lib/node_modules/databag-os/bin/databag.mjs" > "$DATA/bin/databag"
+chmod +x "$DATA/bin/databag"
+BIN="$DATA/bin/databag"
+
 # Make "databag" available in new terminal windows.
-LINE="export PATH=\"$APP/bin:$RUNTIME/node/bin:\$PATH\""
-for rc in "$HOME/.zprofile" "$HOME/.bashrc"; do
-  if [ -f "$rc" ] || [ "$rc" = "$HOME/.zprofile" -a "$OS" = darwin ]; then grep -qs "$APP/bin" "$rc" || printf '\n# databag\n%s\n' "$LINE" >> "$rc"; fi
+LINE="export PATH=\"$DATA/bin:\$PATH\""
+if [ "$OS" = darwin ]; then FILES="$HOME/.zprofile $HOME/.bashrc"; else FILES="$HOME/.profile $HOME/.bashrc"; fi
+for rc in $FILES; do
+  case "$rc" in */.zprofile|*/.profile) ;; *) [ -f "$rc" ] || continue ;; esac
+  grep -qs "$DATA/bin" "$rc" || printf '\n# databag\n%s\n' "$LINE" >> "$rc"
 done
+[ -d "$HOME/.local/bin" ] && ln -sf "$DATA/bin/databag" "$HOME/.local/bin/databag"
 
 # 4. Setup questions, model download, start
 say "Almost done. A few questions to make databag yours:"
