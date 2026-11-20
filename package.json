@@ -1,6 +1,6 @@
 {
   "name": "databag-os",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "databag: an open-source company OS. Mail, calendar, docs, CRM, accounting, agents and Value Factories in one package, with a local Gemma 4 model. Runs on your own machine: a laptop, a Mac Mini, a VM or a server in your data center.",
   "keywords": [
     "company-os",
@@ -50,7 +50,8 @@
     "start": "node bin/databag.mjs start",
     "seed": "DATABAG_HOME=.data node scripts/seed.ts",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "node --test --test-concurrency=1 tests/"
   },
   "dependencies": {
     "@clack/prompts": "^1.9.0",

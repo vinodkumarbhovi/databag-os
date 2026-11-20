@@ -2,6 +2,7 @@ import { after } from 'next/server';
 import { runDueJobs } from '@/lib/jobs';
 import { CLOUD } from '@/lib/runtime';
 import { accounting } from '@/lib/apps/accounting';
+import { activity } from '@/lib/apps/activity';
 import { agents } from '@/lib/apps/agents';
 import { factories } from '@/lib/apps/factories';
 import { booking } from '@/lib/apps/booking';
@@ -21,12 +22,12 @@ import { loadConfig } from '@/lib/config';
 import { authed } from '@/lib/http';
 import type { Handlers } from '@/lib/rpc';
 
-const HANDLERS: Handlers = { ...calendar, ...chat, ...meet, ...office, ...drive, ...crm, ...accounting, ...projects, ...tax, ...sign, ...booking, ...books, ...linkedin, ...agents, ...factories,
+const HANDLERS: Handlers = { ...calendar, ...chat, ...meet, ...office, ...drive, ...crm, ...accounting, ...projects, ...tax, ...sign, ...booking, ...books, ...linkedin, ...agents, ...factories, ...activity,
   // The company directory: everyone with a mailbox here.
   'contacts.team': () => listUsers().map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role })),
 };
 // Which installed app a handler belongs to ("acc.summary" -> accounting, "office.*" -> any of the three).
-const APP_OF: Record<string, string[]> = { calendar: ['calendar'], chat: ['chat'], meet: ['meet', 'calendar'], office: ['docs', 'sheets', 'slides', 'drive'], drive: ['drive'], crm: ['crm', 'accounting', 'contacts'], acc: ['accounting', 'crm'], projects: ['projects'], booking: ['calendar'], li: ['linkedin'], books: ['accounting'], tax: ['tax'], sign: ['sign'], contacts: ['contacts'], agents: ['agents', 'factories'], factories: ['factories'] };
+const APP_OF: Record<string, string[]> = { calendar: ['calendar'], chat: ['chat'], meet: ['meet', 'calendar'], office: ['docs', 'sheets', 'slides', 'drive'], drive: ['drive'], crm: ['crm', 'accounting', 'contacts'], acc: ['accounting', 'crm'], projects: ['projects'], booking: ['calendar'], li: ['linkedin'], books: ['accounting'], tax: ['tax'], sign: ['sign'], contacts: ['contacts'], agents: ['agents', 'factories'], factories: ['factories'], activity: ['activity', 'agents', 'factories'] };
 
 export const POST = authed(async ({ req, user }) => {
   const { fn, args } = (await req.json()) as { fn: string; args?: unknown };

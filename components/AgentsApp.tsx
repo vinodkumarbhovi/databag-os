@@ -1,9 +1,9 @@
 'use client';
 
-import { Bot, Brain, Check, Loader2, Plug, Plus, Send, Trash2, Wrench, X } from 'lucide-react';
+import { Bot, Brain, Check, Loader2, Plug, Plus, Trash2, Wrench, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { call, rpc, when } from '@/lib/client';
-import type { Pending, Turn } from '@/lib/agent/agent';
+import { rpc, when } from '@/lib/client';
+import { AgentChat } from './AgentChat';
 import { useToast } from './ui';
 
 type Skill = { name: string; description: string; instructions: string };
@@ -92,7 +92,7 @@ export function AgentsApp() {
                 <label className="field"><span className="label">Background it always knows: products, prices, customers, tone, links</span>
                   <textarea className="input area" rows={14} placeholder="We sell… Our customers are… We write in a friendly, plain tone…" value={edit.context} onChange={(e) => change({ context: e.target.value })} /></label>
               )}
-              {section === 'Try it' && (edit.id && !dirty ? <TryIt agent={edit} /> : <div className="notice">Save the agent first, then try it here.</div>)}
+              {section === 'Try it' && (edit.id && !dirty ? <AgentChat agentId={edit.id} name={edit.name} app="agents" /> : <div className="notice">Save the agent first, then try it here.</div>)}
             </div>
           </div>
         )}
@@ -228,42 +228,3 @@ function MemoryPane({ agent, onToggle, attempt }: { agent: Agent; onToggle: (on:
   );
 }
 
-type Line = { who: 'you' | 'agent'; text: string } | { who: 'pending'; pending: Pending; state: 'open' | 'done' };
-function TryIt({ agent }: { agent: Agent }) {
-  const [log, setLog] = useState<Line[]>([]);
-  const [text, setText] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [conversation, setConversation] = useState<string>();
-  const take = (t: Turn) => {
-    setConversation(t.conversation);
-    setLog((l) => [...l, ...t.done.map((d) => ({ who: 'agent' as const, text: `${d.ok ? '✓' : '✗'} ${d.summary}${d.error ? ` (${d.error})` : ''}` })), ...(t.reply ? [{ who: 'agent' as const, text: t.reply }] : []), ...(t.pending ? [{ who: 'pending' as const, pending: t.pending, state: 'open' as const }] : [])]);
-  };
-  const go = async (body: Record<string, unknown>) => {
-    setBusy(true);
-    try { take(await call<Turn>('/api/agent', { body: { ...body, conversation, agent: agent.id, app: 'agents' } })); }
-    catch (err) { setLog((l) => [...l, { who: 'agent', text: (err as Error).message }]); }
-    setBusy(false);
-  };
-  const send = (e: React.FormEvent) => { e.preventDefault(); if (!text.trim()) return; setLog((l) => [...l, { who: 'you', text }]); setText(''); go({ message: text }); };
-  const decide = (p: Pending, approve: boolean) => { setLog((l) => l.map((x) => (x.who === 'pending' && x.pending.id === p.id ? { ...x, state: 'done' } : x))); go({ pending: p.id, approve }); };
-  return (
-    <div className="stack">
-      <div className="try-log">
-        {log.length === 0 && <div className="muted small">Ask {agent.name} to do something. It works with its own tools, skills and memory, and asks before anything goes out.</div>}
-        {log.map((l, i) => l.who === 'pending' ? (
-          <div key={i} className={`approve ${l.state === 'done' ? 'approved' : ''}`}>
-            <div className="approve-head">Needs your OK</div>
-            <div>{l.pending.summary}</div>
-            {l.pending.preview.map((f) => <div key={f.label} className="approve-field"><span className="label">{f.label}</span><div style={{ whiteSpace: 'pre-wrap' }}>{f.value}</div></div>)}
-            {l.state === 'open' && <div className="approve-buttons"><button className="btn" onClick={() => decide(l.pending, false)}>Don’t</button><button className="btn primary" onClick={() => decide(l.pending, true)}><Check size={14} /> Do it</button></div>}
-          </div>
-        ) : <div key={i} className={`bubble ${l.who === 'you' ? 'from-user' : 'from-ai'}`} style={{ whiteSpace: 'pre-wrap' }}>{l.text}</div>)}
-        {busy && <div className="muted small"><Loader2 size={13} className="spin" /> Working…</div>}
-      </div>
-      <form className="ai-row" onSubmit={send}>
-        <input className="input" aria-label={`Ask ${agent.name}`} placeholder={`Ask ${agent.name}…`} value={text} onChange={(e) => setText(e.target.value)} />
-        <button className="btn primary" disabled={busy || !text.trim()}><Send size={14} /> Send</button>
-      </form>
-    </div>
-  );
-}

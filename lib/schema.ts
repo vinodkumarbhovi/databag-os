@@ -232,4 +232,17 @@ export const SCHEMA: { module: string; steps: string[] }[] = [
        CREATE INDEX agent_memory_agent ON agent_memory(agent_id, created_at);`,
     ],
   },
+  {
+    // Everything agents do: each tool use, each approval asked for and given, each access request.
+    module: 'activity',
+    steps: [
+      `CREATE TABLE agent_activity (
+         id TEXT PRIMARY KEY, agent_id TEXT, agent_name TEXT NOT NULL, user_id TEXT NOT NULL, conversation TEXT,
+         tool TEXT NOT NULL, app TEXT NOT NULL, risk TEXT NOT NULL, summary TEXT NOT NULL,
+         status TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '', pending_id TEXT, link TEXT,
+         decided_by TEXT, decided_at INTEGER, created_at INTEGER NOT NULL);
+       CREATE INDEX agent_activity_time ON agent_activity(created_at DESC);
+       CREATE INDEX agent_activity_pending ON agent_activity(pending_id);`,
+    ],
+  },
 ];

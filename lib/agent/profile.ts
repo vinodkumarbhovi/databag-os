@@ -89,6 +89,28 @@ export async function loadProfile(agentId: string): Promise<Profile> {
     }
   }
 
+  // Everything else installed can only be reached by asking: a person must approve each new tool.
+  const apps = loadConfig().apps;
+  const needs: Record<string, string[]> = { contacts: ['contacts', 'crm'], overview: [] };
+  const others = TOOLS.filter((t) => !allowed.has(t.name) && (t.app === 'overview' || (needs[t.app] ?? [t.app]).some((x) => apps.includes(x)))).map((t) => t.name);
+  if (others.length) {
+    tools.push({
+      name: 'request_access', app: 'agents', risk: 'send',
+      description: 'Ask a person for permission to use a databag tool you have not been given. Only when your task really needs it; say why.',
+      params: { tool: { type: 'string', enum: others }, reason: { type: 'string', description: 'Why the task needs it' } }, required: ['tool', 'reason'],
+      summary: (x) => `${a.name} asks for access to "${String(x.tool)}"`,
+      preview: (x) => [{ label: 'Why', value: String(x.reason ?? '') }, { label: 'What it can do', value: TOOLS.find((t) => t.name === x.tool)?.description ?? '' }],
+      run: (_u, x) => {
+        const name = String(x.tool);
+        need(TOOLS.some((t) => t.name === name), 'There is no such tool.');
+        const now = parse<string[]>(get<{ tools: string }>('SELECT tools FROM agents WHERE id = ?', a.id)?.tools ?? '[]', []);
+        if (!now.includes(name)) run('UPDATE agents SET tools = ?, updated_at = ? WHERE id = ?', JSON.stringify([...now, name]), Date.now(), a.id);
+        return { granted: true, note: `You may now use ${name}. Call it to continue the task.` };
+      },
+    });
+    notes.push('You can only use the tools you have been given. If a task truly needs another databag tool, call request_access; a person decides.');
+  }
+
   const company = loadConfig().company;
   const system = [
     a.role.trim() || `You are ${a.name}, an agent working for ${company.name}.`,

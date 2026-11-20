@@ -20,6 +20,7 @@ export const CATALOG = [
   { id: 'accounting', group: 'Money', name: 'Accounting', replaces: 'QuickBooks, Xero', description: 'Invoices, quotes and expenses, with payment reminders.', action: 'New invoice', status: 'available' },
   { id: 'factories', group: 'Automate', name: 'Value Factories', replaces: 'agencies, freelancers, Zapier-style busywork', description: 'Projects run by agents: campaigns, sales funnels, outreach, branding, apps and automations. Give each task to an agent and approve what goes out.', action: 'New factory', status: 'available' },
   { id: 'agents', group: 'Automate', name: 'Agents', replaces: 'custom GPTs, agent builders', description: 'Build your own AI agents: a role, tools, MCP servers, skills, memory and context, on the local model or any API.', action: 'Build an agent', status: 'available' },
+  { id: 'activity', group: 'Automate', name: 'Activity', replaces: 'audit logs, approval inboxes', description: 'Everything your agents do, live: each action, what failed, and what waits for your approval, including requests for access they were not given.', action: 'Review approvals', status: 'available' },
   { id: 'tax', group: 'Money', name: 'Tax', replaces: 'manual VAT spreadsheets', description: 'VAT and GST figures for each quarter, worked out from your invoices.', action: 'Review this quarter', status: 'available' },
 ];
 

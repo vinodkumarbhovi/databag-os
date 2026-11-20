@@ -35,7 +35,7 @@ Windows users can use WSL2 or Docker. In the cloud, Vercel works too (see [Insta
 | Create | Docs · Sheets · Slides · Drive | Word, Excel, PowerPoint, Dropbox |
 | Customers | CRM · Contacts · Projects · LinkedIn · Sign | HubSpot, Trello, Buffer, DocuSign |
 | Money | Accounting (invoices, quotes, recurring, books, bank matching) · Tax | QuickBooks/Xero, VAT spreadsheets |
-| Automate | **Agents** · **Value Factories** | custom GPTs, agencies, Zapier-style busywork |
+| Automate | **Agents** · **Value Factories** · **Activity** | custom GPTs, agencies, Zapier-style busywork, audit logs |
 
 Everything shares one database, so apps work together. For example, a CRM deal becomes a quote, then an invoice, then a bank match. **⌘K** searches everything. An agent panel in every app can do work across all of them, and hold-to-talk dictation (right ⌥) works anywhere.
 
@@ -73,6 +73,10 @@ An agent is a model plus a **harness**. You set each part in the Agents app:
 
 Eight starter agents come ready to adjust: Marketing, Campaign, Sales, Outreach, Brand, Builder, Automation and Operations. Anything that reaches other people (email, invitations, posts) waits for a person's OK.
 
+**Every agent is its own worker.** Each has its own conversation, memory, tools and keys; nothing is shared between agents. Pick one on **Today** and talk to it directly. An agent can only use the tools it was given. If a job needs another tool, it must **ask for access**, and a person approves or declines.
+
+**Activity** logs everything every agent does: what it looked up, what it changed, what failed, and what is waiting. Approvals and access requests from every agent wait in one inbox there.
+
 ## Value Factories: projects that agents run
 
 Pick a factory and give it a goal. It starts with a to-do list and a suitable agent:
@@ -95,6 +99,24 @@ flowchart LR
   R -- yes --> P["You approve<br/>or edit"] --> W
   W --> Acc["Accept ✓"] --> N["Next task sees<br/>the result"]
 ```
+
+## Your domain and email to anyone
+
+Add your domain during setup and databag shows the exact DNS records to add at your domain provider:
+- ownership
+- MX
+- SPF
+- DKIM
+- DMARC
+- the address your team opens
+
+**Check my domain** then looks them up in public DNS to verify them. Every colleague you add gets a mailbox `name@yourdomain.com`, with no limit.
+
+Mail to the rest of the internet leaves one of two ways:
+- **Directly**: databag delivers to each recipient's mail server itself, signed with your domain's DKIM key. This needs outgoing port 25.
+- **Through a relay**: any SMTP service, such as Resend, Postmark, Amazon SES or Gmail. This works on any network.
+
+A **Send test** button shows exactly what happened. See [docs/configuration.md](docs/configuration.md#mail).
 
 ## Make it yours
 
@@ -138,6 +160,24 @@ databag restore   put a backup back (a backup is made every day)
 - [Agents and Value Factories](docs/agents-and-factories.md)
 - [Configuration](docs/configuration.md): settings and environment variables
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+
+## Tests
+
+```bash
+npm run build && npm test
+```
+
+The test suite starts a real databag on a throwaway folder, plus a stand-in for the internet's mail servers. It checks:
+- setup and accounts
+- mail between colleagues
+- direct and relayed delivery to outside addresses, DKIM-signed
+- domain records, the public address and the logo
+- agents, isolated memories, secret keys and factories
+- the activity log
+
+Two more tests run when a local model is available:
+- the assistant works and its work is logged
+- an agent has to ask before using a tool it wasn't given
 
 ## Status
 

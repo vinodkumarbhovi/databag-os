@@ -12,6 +12,7 @@ import { ContactsApp, ProjectsApp, SignApp, TaxApp } from './WorkApps';
 import { LinkedInApp } from './LinkedInApp';
 import { AgentsApp } from './AgentsApp';
 import { FactoriesApp } from './FactoriesApp';
+import { ActivityApp } from './ActivityApp';
 
 /** Renders one app. Apps use the clock and the address bar, so they start in the browser only. */
 export function AppHost({ id, me }: { id: string; me: { name: string; email: string } }) {
@@ -48,6 +49,7 @@ function render(id: string, me: { name: string; email: string }) {
     case 'linkedin': return <LinkedInApp />;
     case 'agents': return <AgentsApp />;
     case 'factories': return <FactoriesApp />;
+    case 'activity': return <ActivityApp />;
     default: return null;
   }
 }

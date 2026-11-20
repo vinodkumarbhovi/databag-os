@@ -43,6 +43,20 @@ Background the agent always knows: what you sell, prices, customers, tone of voi
 ### Try it
 Chat with the saved agent. Approvals appear in the conversation.
 
+### Each agent works on its own
+- **Separate conversations.** On **Today**, each agent has its own tab and its own thread; switching agents never mixes them.
+- **Separate memory.** What one agent remembers is never shown to another.
+- **Separate permissions and keys.** An agent sees only the tools it was given, and only its own MCP servers and API keys.
+- **Access requests.** If a job needs a tool the agent wasn't given, the agent has to call `request_access` and say why. If it simply tries the tool, databag turns that into a request too. A person approves or declines; an approval adds the tool to the agent.
+
+## Activity
+
+Open **Activity** to see everything every agent did, live: each lookup, change and message, what failed and why, and who approved what.
+
+- **Waiting for approval** lists every action and access request that needs a person, from chats, from Today and from Value Factory tasks. Approve or decline it there.
+- Admins see all agents. Everyone else sees the work done for them.
+- Admins can approve on behalf of a colleague. The action still runs as that colleague.
+
 ## Value Factories
 
 A value factory is a project that agents work on. Open **Value Factories**, click **New factory** and pick a kind:

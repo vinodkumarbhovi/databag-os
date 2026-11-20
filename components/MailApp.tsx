@@ -4,7 +4,7 @@ import { Archive, Inbox, Loader2, Pencil, Reply, Search, Send, Sparkles, Star, T
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { call, initials, param, when } from '@/lib/client';
 
-type Delivery = { to: string; status: 'delivered' | 'relayed' | 'failed'; detail?: string };
+type Delivery = { to: string; status: 'delivered' | 'relayed' | 'sent' | 'failed'; detail?: string };
 type Mail = {
   id: string; folder: string; thread_id: string; from_addr: string; from_name: string; to: string[]; cc: string[];
   subject: string; body_text: string; body_html: string | null; snippet: string; is_read: boolean; is_starred: boolean;

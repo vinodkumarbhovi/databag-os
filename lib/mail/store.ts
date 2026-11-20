@@ -1,9 +1,9 @@
 import crypto from 'node:crypto';
-import nodemailer from 'nodemailer';
 import { type User, findUserByEmail } from '../auth.ts';
 import { loadConfig } from '../config.ts';
 import { all, get, run } from '../db.ts';
 import { emit } from '../events.ts';
+import { sendOutbound } from './outbound.ts';
 
 export type Folder = 'inbox' | 'sent' | 'archive' | 'trash';
 export const FOLDERS: Folder[] = ['inbox', 'sent', 'archive', 'trash'];
@@ -38,7 +38,7 @@ export type Mail = Omit<MailRow, 'to_addrs' | 'cc_addrs' | 'is_read' | 'is_starr
   delivery: DeliveryResult[] | null;
 };
 
-export type DeliveryResult = { to: string; status: 'delivered' | 'relayed' | 'failed'; detail?: string };
+export type DeliveryResult = { to: string; status: 'delivered' | 'relayed' | 'sent' | 'failed'; detail?: string };
 
 const toMail = (r: MailRow): Mail => {
   const { to_addrs, cc_addrs, is_read, is_starred, delivery, ...rest } = r;
@@ -201,32 +201,10 @@ export async function sendMail(sender: User, input: SendInput): Promise<{ id: st
   }
 
   if (external.length) {
-    if (!config.relay) {
-      for (const addr of external)
-        delivery.push({ to: addr, status: 'failed', detail: 'No outbound mail relay is set up yet, so mail can only reach people in this company.' });
-    } else {
-      try {
-        const transport = nodemailer.createTransport({
-          host: config.relay.host,
-          port: config.relay.port,
-          secure: config.relay.secure ?? false,
-          auth: config.relay.user ? { user: config.relay.user, pass: config.relay.pass ?? '' } : undefined,
-        });
-        await transport.sendMail({
-          envelope: { from: sender.email, to: external },
-          messageId: env.messageId,
-          inReplyTo: env.inReplyTo ?? undefined,
-          from: { name: sender.name, address: sender.email },
-          to,
-          cc,
-          subject: env.subject,
-          text: env.text,
-        });
-        for (const addr of external) delivery.push({ to: addr, status: 'relayed' });
-      } catch (err) {
-        for (const addr of external) delivery.push({ to: addr, status: 'failed', detail: (err as Error).message });
-      }
-    }
+    delivery.push(...(await sendOutbound({
+      from: { name: sender.name, address: sender.email }, to, cc, recipients: external,
+      subject: env.subject, text: env.text, messageId: env.messageId, inReplyTo: env.inReplyTo ?? undefined,
+    })));
   }
 
   const id = insertCopy(sender, 'sent', env, { read: true, threadId: parent?.thread_id, delivery });

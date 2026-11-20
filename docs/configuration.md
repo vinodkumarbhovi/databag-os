@@ -65,6 +65,24 @@ See [.env.example](../.env.example).
 
 ## Mail
 
-- Mail between colleagues is delivered instantly.
-- To send to outside addresses, set a relay: any SMTP provider such as Resend, Postmark, Amazon SES or your current mailbox provider. Without one, the sender is told the mail was not delivered.
-- databag receives mail for company addresses on port 2525. To receive internet mail, point your domain's MX record at the machine and forward port 25 to 2525.
+Everything is in **Settings → Domain and mail**, which is also step 4 of onboarding.
+
+- **Mailboxes:** every person you add in Settings → People gets `name@yourdomain`, with no limit. Mail between colleagues is delivered instantly and never leaves the machine.
+- **Your domain:** databag shows the records to add at your domain provider. **Check my domain** looks them up in public DNS (Cloudflare and Google):
+
+  | Record | Why |
+  |---|---|
+  | `TXT yourdomain  databag-verify=…` | proves the domain is yours |
+  | `A os.yourdomain → your IP` | the address your team opens |
+  | `MX yourdomain → mail.yourdomain` and `A mail.yourdomain → your IP` | where mail for the domain arrives |
+  | `TXT yourdomain  v=spf1 …` | which servers may send for the domain |
+  | `TXT databag._domainkey.yourdomain  v=DKIM1 …` | the key that signs every outgoing message |
+  | `TXT _dmarc.yourdomain  v=DMARC1 …` | what receivers do with mail that fails the checks |
+
+- **Sending to the internet:**
+  - *Directly* (the default): databag finds each recipient's mail server and delivers to it, DKIM-signed. This needs outgoing port 25, which is open on most servers and blocked on many home connections; databag tells you when it is. Gmail and Outlook only accept the mail once the SPF and DKIM records are in place.
+  - *Through a relay*: Resend, Postmark, Amazon SES, Gmail (`smtp.gmail.com`, port 587, with an app password) or your current provider. This works from any network and is the most reliable from a home or office connection.
+  - *Inside the company only*: nothing goes out.
+- **Receiving from the internet:** point the MX record at the machine and let port 25 reach it, forwarded to databag's mail port (2525 by default).
+
+The relay can also come from environment variables (`MAIL_RELAY_*`); Settings then shows it as read-only.

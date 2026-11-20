@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { call } from '@/lib/client';
 import { Brand } from './Brand';
 
-function useSubmit(action: () => Promise<unknown>) {
+function useSubmit(action: () => Promise<unknown>, next = '/') {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
@@ -13,7 +13,7 @@ function useSubmit(action: () => Promise<unknown>) {
     setError('');
     try {
       await action();
-      window.location.href = '/';
+      window.location.href = next;
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
@@ -62,7 +62,7 @@ export function SetupForm({ defaults, tools, jobs, needsCode, logo: savedLogo }:
     await call('/api/setup', { body: { ...f, tools: picked, shortcuts } });
     // The logo is optional and can be added later in Settings, so a failed upload does not stop setup.
     if (logo) { const form = new FormData(); form.append('logo', logo); await fetch('/api/brand/logo', { method: 'POST', body: form }).catch(() => {}); }
-  });
+  }, needsCode ? '/' : '/welcome');
   const toggle = (list: string[], setList: (l: string[]) => void, id: string) => setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
   const saving = tools.filter((t) => picked.includes(t.id)).reduce((n, t) => n + (t.price ?? 0), 0);
   const next = (e: React.FormEvent) => {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { call, initials, when } from '@/lib/client';
+import { DomainSetup } from './DomainSetup';
 import { useToast } from './ui';
 
 type Person = { id: string; name: string; email: string; role: string };
@@ -140,6 +141,8 @@ export function SettingsView({ me, company, ai, smtpPort, hasRelay, tools, chose
         )}
       </div>
 
+      {me.isAdmin && (<><h2 id="domain">Domain and mail</h2><DomainSetup /></>)}
+
       <h2>AI</h2>
       {aiSetup.fromEnv ? (
         <div className="panel pad muted">The AI is set by this server’s environment variables ({ai.model} at {ai.baseUrl}). Change them in your host’s settings.</div>
@@ -224,7 +227,8 @@ export function SettingsView({ me, company, ai, smtpPort, hasRelay, tools, chose
       <h2>Mail</h2>
       <div className="panel">
         <div className="panel-row compact"><span className="grow">Receives mail on port</span><span className="mono">{smtpPort}</span></div>
-        <div className="panel-row compact"><span className="grow">Sending outside the company</span><span>{hasRelay ? 'Relay configured' : 'Not set up yet'}</span></div>
+        <div className="panel-row compact"><span className="grow">Sending outside the company</span><span>{hasRelay ? 'Through a relay' : 'Directly, or set up above in Domain and mail'}</span></div>
+        <div className="panel-row compact"><span className="grow muted small">To receive mail from the internet, the MX record must point here and port 25 must reach this machine (forward it to port {smtpPort}).</span></div>
       </div>
 
       <h2>Look</h2>

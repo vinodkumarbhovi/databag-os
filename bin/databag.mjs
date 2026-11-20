@@ -15,6 +15,8 @@ const LOCAL_MODEL = DEFAULTS.ai.model;
 
 const readConfig = () => (fs.existsSync(CONFIG) ? { ...DEFAULTS, ...JSON.parse(fs.readFileSync(CONFIG, 'utf8')) } : null);
 function writeConfig(config) {
+  // Record which apps exist now, so a later update can switch on only the apps that are new.
+  config.appsKnown = CATALOG.filter((a) => a.status === 'available').map((a) => a.id);
   fs.mkdirSync(HOME, { recursive: true });
   fs.writeFileSync(CONFIG, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
 }

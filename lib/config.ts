@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { CATALOG } from '../shared/catalog.mjs';
 import { DEFAULTS as RAW_DEFAULTS, homeDir } from '../shared/defaults.mjs';
 import { get, run } from './db.ts';
 import { CLOUD } from './runtime.ts';
@@ -15,6 +16,8 @@ export type Config = {
     url?: string;
   };
   apps: string[];
+  /** Every app this install has seen; apps added by an update are switched on once. */
+  appsKnown?: string[];
   host: string;
   port: number;
   currency: string;
@@ -23,6 +26,8 @@ export type Config = {
   ai: { baseUrl: string; model: string; apiKey?: string; speechModel?: string; extraBody?: Record<string, unknown> };
   /** Optional outbound relay for mail to addresses outside the company. */
   relay?: { host: string; port: number; secure?: boolean; user?: string; pass?: string };
+  /** Mail to the internet: 'direct' (default when no relay) delivers to recipients' mail servers itself; 'off' keeps mail inside the company. */
+  mail?: { outbound?: 'direct' | 'off'; mxOverride?: string };
   /** Subscriptions the company used before (ids from TOOLS), to show what can be cancelled. */
   tools?: string[];
   /** Home screen shortcuts (ids from JOBS). */
@@ -86,9 +91,13 @@ export const aiFromEnv = () => !!fromEnv().ai;
 export function loadConfig(): Config {
   const saved = (fs.existsSync(file()) ? JSON.parse(fs.readFileSync(file(), 'utf8')) : CLOUD ? savedInDb() ?? {} : {}) as Partial<Config>;
   const env = fromEnv();
+  const available = (CATALOG as { id: string; status: string }[]).filter((a) => a.status === 'available').map((a) => a.id);
+  const known = saved.appsKnown ?? saved.apps;
+  const added = known ? available.filter((id) => !known.includes(id)) : [];
   return {
     ...DEFAULTS,
     ...saved,
+    ...(saved.apps && added.length ? { apps: [...saved.apps, ...added] } : {}),
     ...env,
     company: { ...DEFAULTS.company, ...saved.company },
     smtp: { ...DEFAULTS.smtp, ...saved.smtp, ...env.smtp },
@@ -99,7 +108,7 @@ export function loadConfig(): Config {
 export function saveConfig(config: Config): void {
   // Environment settings are not written back: they stay in the environment.
   const env = fromEnv();
-  const toSave = { ...config, ...(env.ai ? { ai: { ...DEFAULTS.ai, ...(loadSavedOnly().ai ?? {}) } } : {}), ...(env.relay ? { relay: loadSavedOnly().relay } : {}) };
+  const toSave = { ...config, appsKnown: (CATALOG as { id: string; status: string }[]).filter((a) => a.status === 'available').map((a) => a.id), ...(env.ai ? { ai: { ...DEFAULTS.ai, ...(loadSavedOnly().ai ?? {}) } } : {}), ...(env.relay ? { relay: loadSavedOnly().relay } : {}) };
   if (CLOUD) { run("INSERT INTO app_kv (key, value) VALUES ('config', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify(toSave)); return; }
   fs.mkdirSync(HOME, { recursive: true });
   fs.writeFileSync(file(), JSON.stringify(toSave, null, 2) + '\n', { mode: 0o600 });

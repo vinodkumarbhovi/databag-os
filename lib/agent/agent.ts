@@ -1,10 +1,11 @@
 import crypto from 'node:crypto';
 import { type AgentMessage, type ToolCall, type ToolSpec, chatWithTools } from '../ai.ts';
-import type { User } from '../auth.ts';
+import { type User, listUsers } from '../auth.ts';
 import { CATALOG } from '../catalog.ts';
 import { loadConfig } from '../config.ts';
 import { get, run } from '../db.ts';
 import { emit } from '../events.ts';
+import { decideActivity, logActivity } from './activity.ts';
 import { type Profile, RULES, loadProfile } from './profile.ts';
 import { TOOLS, type Risk, type Tool, riskOf, toolByName } from './tools.ts';
 
@@ -80,21 +81,27 @@ export async function warmAgent(): Promise<void> {
   try { await chatWithTools([{ role: 'system', content: SYSTEM }, { role: 'user', content: 'Ready?' }], { tools: available().map(spec), maxTokens: 1 }); } catch { /* the model may not be running yet */ }
 }
 
-async function runTool(u: User, s: Setup, call: ToolCall, args: Record<string, unknown>, done: Done[]): Promise<string> {
+const who = (s: Setup) => ({ agentId: s.profile?.id ?? null, agentName: s.profile?.name ?? 'Assistant' });
+
+async function runTool(u: User, s: Setup, c: Conversation, call: ToolCall, args: Record<string, unknown>, done: Done[]): Promise<string> {
   const tool = find(s, call.function.name);
   if (!tool) return JSON.stringify({ error: `There is no tool called ${call.function.name}.` });
   let summary = tool.name;
+  const risk = riskOf(tool, args);
   try {
     summary = tool.summary(args, u);
     const result = await tool.run(u, args);
-    if (riskOf(tool, args) !== 'read') {
-      done.push({ tool: tool.name, app: tool.app, summary, ok: true, link: tool.link?.(args, result) });
-      emit({ type: 'agent.action', app: tool.app === 'overview' ? 'settings' : tool.app, userId: u.id, summary: `Agent: ${summary}`, payload: { tool: tool.name } });
+    const link = tool.link?.(args, result);
+    if (risk !== 'read') {
+      done.push({ tool: tool.name, app: tool.app, summary, ok: true, link });
+      emit({ type: 'agent.action', app: tool.app === 'overview' ? 'settings' : tool.app, userId: u.id, summary: `${who(s).agentName}: ${summary}`, payload: { tool: tool.name } });
     }
+    logActivity({ ...who(s), userId: u.id, conversation: c.id, tool: tool.name, app: tool.app, risk, summary, status: 'done', link });
     return JSON.stringify(result ?? { ok: true }).slice(0, 6000);
   } catch (err) {
     const error = (err as Error).message;
-    if (riskOf(tool, args) !== 'read') done.push({ tool: tool.name, app: tool.app, summary, ok: false, error });
+    if (risk !== 'read') done.push({ tool: tool.name, app: tool.app, summary, ok: false, error });
+    logActivity({ ...who(s), userId: u.id, conversation: c.id, tool: tool.name, app: tool.app, risk, summary, status: 'failed', detail: error });
     return JSON.stringify({ error });
   }
 }
@@ -107,7 +114,10 @@ async function advance(u: User, c: Conversation, queue: ToolCall[], done: Done[]
   if (c.messages[0]?.role === 'system') c.messages[0] = { role: 'system', content: s.system };
   for (let step = 0; step < (s.profile ? 14 : MAX_STEPS); step++) {
     while (queue.length) {
-      const call = queue.shift()!;
+      let call = queue.shift()!;
+      // An agent reaching for a databag tool it was not given: turn it into a request for access.
+      if (s.profile && !find(s, call.function.name) && toolByName(call.function.name) && find(s, 'request_access'))
+        call = { ...call, function: { name: 'request_access', arguments: JSON.stringify({ tool: call.function.name, reason: 'It tried to use this tool, which it has not been given.' }) } };
       const args = parseArgs(call);
       const tool = find(s, call.function.name);
       if (tool && needsOk(riskOf(tool, args))) {
@@ -120,9 +130,10 @@ async function advance(u: User, c: Conversation, queue: ToolCall[], done: Done[]
           continue;
         }
         c.waiting = { call, args, queue, pending };
+        logActivity({ ...who(s), userId: u.id, conversation: c.id, tool: tool.name, app: tool.app, risk: pending.risk, summary: pending.summary, status: 'waiting', pendingId: pending.id });
         return { conversation: c.id, reply: '', done, pending };
       }
-      c.messages.push({ role: 'tool', tool_call_id: call.id, content: await runTool(u, s, call, args, done) });
+      c.messages.push({ role: 'tool', tool_call_id: call.id, content: await runTool(u, s, c, call, args, done) });
     }
     const out = await chatWithTools(c.messages, { tools, ai: s.profile?.ai, maxTokens: s.profile ? 2000 : undefined });
     c.messages.push({ role: 'assistant', content: out.content || null, ...(out.toolCalls.length ? { tool_calls: out.toolCalls } : {}) });
@@ -162,7 +173,11 @@ export async function ask(u: User, { conversation, message, app, agent }: { conv
 /** The person approved (possibly after editing the text) or declined the waiting action. */
 export async function decide(u: User, { conversation, pending, approve, edits }: { conversation: string; pending: string; approve: boolean; edits?: Record<string, string> }): Promise<Turn> {
   const c = loadConversation(conversation);
-  if (!c || c.userId !== u.id || !c.waiting || c.waiting.pending.id !== pending) throw new Error('That request has expired. Ask again.');
+  if (!c || !c.waiting || c.waiting.pending.id !== pending || (c.userId !== u.id && u.role !== 'admin')) throw new Error('That request has expired. Ask again.');
+  // An admin may decide for a colleague's agent (from Activity); the action still runs as that colleague.
+  const decider = u;
+  if (c.userId !== u.id) { const owner = listUsers().find((x) => x.id === c.userId); if (!owner) throw new Error('That request has expired. Ask again.'); u = owner; }
+  decideActivity(pending, approve, decider.id);
   const { call, args, queue } = c.waiting;
   const pendingSummary = c.waiting.pending.summary;
   c.waiting = undefined;
@@ -179,7 +194,7 @@ export async function decide(u: User, { conversation, pending, approve, edits }:
   const s = await setupFor(c);
   const editable = new Set((find(s, call.function.name)?.preview?.(args, u) ?? []).filter((p) => p.editable && p.key).map((p) => p.key!));
   for (const [k, v] of Object.entries(edits ?? {})) if (editable.has(k) && typeof v === 'string') args[k] = v.slice(0, 20000);
-  c.messages.push({ role: 'tool', tool_call_id: call.id, content: await runTool(u, s, call, args, done) });
+  c.messages.push({ role: 'tool', tool_call_id: call.id, content: await runTool(u, s, c, call, args, done) });
   return saved(c, advance(u, c, queue, done));
 }
 
