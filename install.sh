@@ -80,11 +80,13 @@ fi
 # 3. databag itself
 say "Installing databag…"
 mkdir -p "$APP"
-if ! npm install --global --prefix "$APP" --no-fund --no-audit --loglevel=error "$PKG" 2>/dev/null; then
+BIN="$APP/bin/databag"
+# npm may answer with a placeholder (for example while a new version is in review); then use the GitHub release.
+if ! npm install --global --prefix "$APP" --no-fund --no-audit --loglevel=error "$PKG" 2>/dev/null || [ ! -x "$BIN" ]; then
   say "Installing the latest release from GitHub…"
+  npm uninstall --global --prefix "$APP" --loglevel=error databag-os >/dev/null 2>&1 || true
   npm install --global --prefix "$APP" --no-fund --no-audit --loglevel=error "https://github.com/$REPO/releases/latest/download/databag-os.tgz" || fail "Could not install databag."
 fi
-BIN="$APP/bin/databag"
 [ -x "$BIN" ] || fail "databag was not installed correctly."
 
 # Make "databag" available in new terminal windows.
